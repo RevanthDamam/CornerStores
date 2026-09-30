@@ -1,5 +1,16 @@
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config();
+dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+
+const rawUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const rawKey = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+
 
 const environmentSchema = z.object({
   SUPABASE_URL: z.string().url("SUPABASE_URL must be a URL").default("https://skquddkyggertfdstdxm.supabase.co"),
@@ -9,4 +20,9 @@ const environmentSchema = z.object({
   GEOCODER_URL: z.string().url("GEOCODER_URL must be a URL").default("https://nominatim.openstreetmap.org"),
 });
 
-export const env = environmentSchema.parse(process.env);
+export const env = environmentSchema.parse({
+  ...process.env,
+  ...(rawUrl ? { SUPABASE_URL: rawUrl } : {}),
+  ...(rawKey ? { SUPABASE_PUBLISHABLE_KEY: rawKey } : {}),
+});
+

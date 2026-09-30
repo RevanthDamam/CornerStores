@@ -14,7 +14,16 @@ const origins = env.CORS_ORIGIN.split(",").map((origin) => origin.trim()).filter
 
 app.disable("x-powered-by");
 app.set("trust proxy", 1);
-app.use(cors({ origin: origins, methods: ["GET", "POST", "PUT", "PATCH", "DELETE"], allowedHeaders: ["Content-Type", "Authorization"] }));
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || origins.includes("*") || origins.includes(origin) || origin.endsWith(".vercel.app")) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+}));
 app.use(apiSecurity);
 app.use(express.json({ limit: "2mb", strict: true }));
 app.get("/api/health", (_req, res) => res.json({ status: "ok", database: "supabase-postgres" }));
