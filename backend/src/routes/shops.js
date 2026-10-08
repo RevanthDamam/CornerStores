@@ -7,9 +7,10 @@ import { requireAuth } from "../middleware/auth.js";
 
 const router = Router();
 const optionalText = z.string().trim().max(5000).nullable().optional();
-const shopCreateSchema = z.object({ name: z.string().trim().min(1).max(160), category: z.string().trim().min(1).max(120), address: z.string().trim().min(1).max(500), description: optionalText, image: z.string().url().max(2048).nullable().optional(), latitude: z.coerce.number().gte(-90).lte(90).nullable().optional(), longitude: z.coerce.number().gte(-180).lte(180).nullable().optional() });
+const imageSchema = z.string().trim().refine((val) => val.startsWith("data:image/") || val.startsWith("http://") || val.startsWith("https://"), { message: "Image must be a valid image file or URL" }).max(5_000_000).nullable().optional();
+const shopCreateSchema = z.object({ name: z.string().trim().min(1).max(160), category: z.string().trim().min(1).max(120), address: z.string().trim().min(1).max(500), description: optionalText, image: imageSchema, latitude: z.coerce.number().gte(-90).lte(90).nullable().optional(), longitude: z.coerce.number().gte(-180).lte(180).nullable().optional() });
 const shopUpdateSchema = shopCreateSchema.partial().extend({ rating: z.coerce.number().min(0).max(5).nullable().optional(), price_level: z.string().trim().max(8).nullable().optional(), is_open: z.boolean().nullable().optional(), phone: z.string().trim().max(80).nullable().optional() });
-const itemSchema = z.object({ name: z.string().trim().min(1).max(180), description: optionalText, price: z.coerce.number().min(0).max(1000000), image: z.string().url().max(2048).nullable().optional(), is_popular: z.boolean().optional() });
+const itemSchema = z.object({ name: z.string().trim().min(1).max(180), description: optionalText, price: z.coerce.number().min(0).max(1000000), image: imageSchema, is_popular: z.boolean().optional() });
 const publicQuerySchema = z.object({ category: z.string().trim().max(120).optional(), search: z.string().trim().max(100).optional() });
 
 function clean(values, allowed) { return Object.fromEntries(Object.entries(values).filter(([key, value]) => allowed.includes(key) && value !== undefined)); }

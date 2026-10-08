@@ -25,7 +25,7 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 app.use(apiSecurity);
-app.use(express.json({ limit: "2mb", strict: true }));
+app.use(express.json({ limit: "5mb", strict: true }));
 app.get("/api/health", (_req, res) => res.json({ status: "ok", database: "supabase-postgres" }));
 app.use("/api/auth", authRoutes);
 app.use("/api/locations", locationRoutes);
