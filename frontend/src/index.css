@@ -97,11 +97,15 @@
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus,
-  input:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 1000px hsl(var(--background)) inset !important;
-    -webkit-text-fill-color: hsl(var(--foreground)) !important;
-    caret-color: hsl(var(--foreground)) !important;
-    transition: background-color 5000s ease-in-out 0s;
+  input:-webkit-autofill:active,
+  input:autofill {
+    -webkit-box-shadow: 0 0 0 1000px #fcf9f2 inset !important;
+    box-shadow: 0 0 0 1000px #fcf9f2 inset !important;
+    -webkit-text-fill-color: #17242a !important;
+    color: #17242a !important;
+    caret-color: #17242a !important;
+    border-radius: 0px !important;
+    transition: background-color 999999s ease-in-out 0s;
   }
 }
 
