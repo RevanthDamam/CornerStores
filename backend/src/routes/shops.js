@@ -75,7 +75,7 @@ router.get("/:shopId/items", asyncHandler(async (req, res) => {
 
 router.post("/", requireAuth, asyncHandler(async (req, res) => {
   const payload = shopCreateSchema.parse(req.body);
-  const shop = assertSupabase(await req.supabase.from("shops").insert({ ...payload, owner_id: req.auth.userId, description: payload.description || null, image: payload.image || null, latitude: payload.latitude ?? null, longitude: payload.longitude ?? null, is_open: true, price_level: "$", rating: 0 }).select().single());
+  const shop = assertSupabase(await req.supabase.from("shops").insert({ ...payload, owner_id: req.auth.userId, description: payload.description || null, image: payload.image || null, latitude: payload.latitude ?? null, longitude: payload.longitude ?? null, is_open: true, price_level: "₹", rating: 0 }).select().single());
   res.status(201).json({ shop });
 }));
 

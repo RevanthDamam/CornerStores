@@ -69,7 +69,7 @@ export default function ShopDetails() {
                       <h3 className="mt-1 font-display text-2xl tracking-[-0.035em]">{item.name}</h3>
                     </div>
                     <span className="font-mono text-sm font-medium text-primary">
-                      ${Number(item.price || 0).toFixed(2)}
+                      ₹{Number(item.price || 0).toFixed(2)}
                     </span>
                   </div>
                   <p className="mt-3 min-h-10 text-sm leading-6 text-muted-foreground">
