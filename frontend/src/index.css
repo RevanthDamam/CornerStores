@@ -118,6 +118,10 @@
     filter: saturate(0.78) contrast(0.94) sepia(0.08);
   }
 
+  .leaflet-pane { z-index: 10 !important; }
+  .leaflet-top,
+  .leaflet-bottom { z-index: 20 !important; }
+
   .leaflet-control-zoom {
     border: 1px solid hsl(var(--border)) !important;
     border-radius: 0 !important;

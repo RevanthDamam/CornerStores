@@ -4,6 +4,7 @@ import { z } from "zod";
 import { createSupabaseClient, assertSupabase } from "../supabase/client.js";
 import { asyncHandler, badRequest } from "../lib/http.js";
 import { requireAuth } from "../middleware/auth.js";
+import { pool } from "../lib/db.js";
 
 const router = Router();
 const optionalText = z.string().trim().max(5000).nullable().optional();
@@ -16,6 +17,11 @@ const publicQuerySchema = z.object({ category: z.string().trim().max(120).option
 function clean(values, allowed) { return Object.fromEntries(Object.entries(values).filter(([key, value]) => allowed.includes(key) && value !== undefined)); }
 function safeFilter(value) { return value.replace(/[^\p{L}\p{N}\s&'’-]/gu, "").trim(); }
 async function ownedShop(client, shopId, userId) {
+  if (pool) {
+    const res = await pool.query("SELECT * FROM public.shops WHERE id = $1 AND owner_id = $2", [shopId, userId]);
+    if (!res.rows[0]) throw badRequest("That shop was not found or you do not have access to it");
+    return res.rows[0];
+  }
   const shop = assertSupabase(await client.from("shops").select("*").eq("id", shopId).eq("owner_id", userId).maybeSingle());
   if (!shop) throw badRequest("That shop was not found or you do not have access to it");
   return shop;
@@ -24,6 +30,24 @@ async function ownedShop(client, shopId, userId) {
 router.get("/", asyncHandler(async (req, res) => {
   const { category = "", search = "" } = publicQuerySchema.parse(req.query);
   const safeSearch = safeFilter(search);
+
+  if (pool) {
+    const conditions = [];
+    const params = [];
+    if (category) {
+      params.push(category);
+      conditions.push(`category = $${params.length}`);
+    }
+    if (safeSearch) {
+      params.push(`%${safeSearch}%`);
+      const idx = params.length;
+      conditions.push(`(name ILIKE $${idx} OR category ILIKE $${idx} OR address ILIKE $${idx})`);
+    }
+    const whereClause = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+    const result = await pool.query(`SELECT * FROM public.shops ${whereClause} ORDER BY created_at DESC`, params);
+    return res.json({ shops: result.rows });
+  }
+
   let request = createSupabaseClient().from("shops").select("*").order("created_at", { ascending: false });
   if (category) request = request.eq("category", category);
   if (safeSearch) request = request.or(`name.ilike.%${safeSearch}%,category.ilike.%${safeSearch}%,address.ilike.%${safeSearch}%`);
@@ -31,12 +55,23 @@ router.get("/", asyncHandler(async (req, res) => {
 }));
 
 router.get("/:shopId", asyncHandler(async (req, res) => {
+  if (pool) {
+    const result = await pool.query("SELECT * FROM public.shops WHERE id = $1", [req.params.shopId]);
+    if (!result.rows[0]) throw badRequest("Shop not found");
+    return res.json({ shop: result.rows[0] });
+  }
   const shop = assertSupabase(await createSupabaseClient().from("shops").select("*").eq("id", req.params.shopId).maybeSingle());
   if (!shop) throw badRequest("Shop not found");
   res.json({ shop });
 }));
 
-router.get("/:shopId/items", asyncHandler(async (req, res) => res.json({ items: assertSupabase(await createSupabaseClient().from("shop_items").select("*").eq("shop_id", req.params.shopId).order("created_at", { ascending: false })) || [] })));
+router.get("/:shopId/items", asyncHandler(async (req, res) => {
+  if (pool) {
+    const result = await pool.query("SELECT * FROM public.shop_items WHERE shop_id = $1 ORDER BY created_at DESC", [req.params.shopId]);
+    return res.json({ items: result.rows });
+  }
+  res.json({ items: assertSupabase(await createSupabaseClient().from("shop_items").select("*").eq("shop_id", req.params.shopId).order("created_at", { ascending: false })) || [] });
+}));
 
 router.post("/", requireAuth, asyncHandler(async (req, res) => {
   const payload = shopCreateSchema.parse(req.body);

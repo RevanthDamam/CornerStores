@@ -3,7 +3,28 @@ import type { LucideIcon } from "lucide-react";
 import { Armchair, BookOpen, Coffee, Croissant, Flower2, Hammer, HeartPulse, PawPrint, Pill, Shirt, ShoppingBasket, Smartphone, Store, UtensilsCrossed } from "lucide-react";
 import type { ApiShop } from "@/lib/api";
 
-export const DEFAULT_CENTER: [number, number] = [40.7128, -74.006];
+export const CITIES = {
+  visakhapatnam: { name: "Visakhapatnam", center: [17.7126, 83.3182] as [number, number] },
+  vijayawada: { name: "Vijayawada", center: [16.5062, 80.6480] as [number, number] },
+  guntur: { name: "Guntur", center: [16.3067, 80.4365] as [number, number] },
+  kurnool: { name: "Kurnool", center: [15.8281, 78.0373] as [number, number] },
+  tirupati: { name: "Tirupati", center: [13.6288, 79.4192] as [number, number] },
+  nellore: { name: "Nellore", center: [14.4426, 79.9865] as [number, number] },
+  kakinada: { name: "Kakinada", center: [16.9891, 82.2475] as [number, number] },
+  rajahmundry: { name: "Rajahmundry", center: [17.0005, 81.7770] as [number, number] },
+  anantapur: { name: "Anantapur", center: [14.6819, 77.6006] as [number, number] },
+};
+
+export const DEFAULT_CENTER: [number, number] = CITIES.vijayawada.center;
+
+export function detectCity(lat: number, lng: number): string | null {
+  for (const city of Object.values(CITIES)) {
+    if (getDistance(lat, lng, city.center[0], city.center[1]) < 35) {
+      return city.name;
+    }
+  }
+  return null;
+}
 
 export const CATEGORY_CATALOG = [
   { name: "Bakery", Icon: Croissant, color: "#c8633f", tint: "#fff1e9" },

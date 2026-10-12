@@ -16,8 +16,10 @@ export const env = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   CORS_ORIGIN: cleanStr.default("https://local-lens-nu.vercel.app,http://localhost:8080"),
   GEOCODER_URL: cleanStr.pipe(z.string().url()).default("https://nominatim.openstreetmap.org"),
+  DATABASE_URL: cleanStr.optional(),
 }).parse({
   ...process.env,
+  DATABASE_URL: process.env.DATABASE_URL,
   SUPABASE_URL: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL,
   SUPABASE_PUBLISHABLE_KEY: process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_ANON_KEY,
 });

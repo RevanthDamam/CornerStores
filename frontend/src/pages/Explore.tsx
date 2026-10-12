@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { AlertTriangle, ArrowUpRight, Compass, Map, MapPin, Search, SlidersHorizontal, X } from "lucide-react";
 import { ShopCard } from "@/components/ShopCard";
-import { CATEGORY_CATALOG, DEFAULT_CENTER, getDistance, type Category, type Shop } from "@/data/catalog";
+import { CATEGORY_CATALOG, CITIES, DEFAULT_CENTER, detectCity, getDistance, type Category, type Shop } from "@/data/catalog";
 import { shopToMap, useShops } from "@/hooks/useShops";
 import { useGeolocation } from "@/hooks/useGeolocation";
 
@@ -11,8 +11,11 @@ export default function Explore() {
   const [searchParams] = useSearchParams();
   const [category, setCategory] = useState<Category | null>((searchParams.get("category") as Category | null) || null);
   const [search, setSearch] = useState("");
+  const [cityFilter, setCityFilter] = useState<string>("All");
   const [showFilters, setShowFilters] = useState(false);
   const { position, permissionDenied } = useGeolocation();
+  const detectedCity = useMemo(() => detectCity(position[0], position[1]), [position]);
+  const activeCity = cityFilter !== "All" ? cityFilter : detectedCity;
   const { shops: records, loading, error } = useShops();
   const shops = useMemo<Shop[]>(() => records.map((shop) => shopToMap(shop, position[0] || DEFAULT_CENTER[0], position[1] || DEFAULT_CENTER[1])), [records, position]);
   const filtered = useMemo(() => {
@@ -20,9 +23,10 @@ export default function Explore() {
     return shops.filter((shop) => {
       const matchesCategory = !category || shop.category === category;
       const matchesSearch = !normalized || [shop.name, shop.category, shop.address, shop.description].filter(Boolean).join(" ").toLowerCase().includes(normalized);
-      return matchesCategory && matchesSearch;
+      const matchesCity = !activeCity || shop.address.toLowerCase().includes(activeCity.toLowerCase());
+      return matchesCategory && matchesSearch && matchesCity;
     }).sort((a, b) => getDistance(position[0], position[1], a.lat, a.lng) - getDistance(position[0], position[1], b.lat, b.lng));
-  }, [category, position, search, shops]);
+  }, [category, position, search, shops, activeCity]);
 
   const reset = () => { setCategory(null); setSearch(""); };
   const filters = (
@@ -38,6 +42,15 @@ export default function Explore() {
         </div>
       </div>
       <div className="mt-8">
+        <div className="flex items-center justify-between"><p className="atlas-label text-white/50">City (AP)</p>{cityFilter !== "All" && <button onClick={() => setCityFilter("All")} className="text-[11px] font-bold text-[#72d2c7]">All cities</button>}</div>
+        <select value={cityFilter} onChange={(e) => setCityFilter(e.target.value)} className="mt-2 w-full border border-white/15 bg-[#102a31] px-3 py-2 text-xs font-bold text-white outline-none focus:border-[#72d2c7]">
+          <option value="All">All Andhra Pradesh ({shops.length})</option>
+          {Object.values(CITIES).map((c) => (
+            <option key={c.name} value={c.name}>{c.name}</option>
+          ))}
+        </select>
+      </div>
+      <div className="mt-8">
         <div className="flex items-center justify-between"><p className="atlas-label text-white/50">Category</p>{category && <button onClick={() => setCategory(null)} className="text-[11px] font-bold text-[#72d2c7]">Clear</button>}</div>
         <div className="mt-3 grid gap-1">
           <button onClick={() => setCategory(null)} className={`flex items-center justify-between px-3 py-2.5 text-left text-xs font-bold transition ${!category ? "bg-[#72d2c7] text-[#102a31]" : "text-white/65 hover:bg-white/10 hover:text-white"}`}><span>All places</span><span className="font-mono text-[10px]">{shops.length}</span></button>
@@ -45,7 +58,7 @@ export default function Explore() {
         </div>
       </div>
       <div className="mt-auto border-t border-white/10 pt-5">
-        {permissionDenied ? <p className="flex gap-2 text-xs leading-5 text-[#ffd19a]"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />Location permission is unavailable, so distances use the default city center.</p> : <p className="flex gap-2 text-xs leading-5 text-white/55"><Compass className="mt-0.5 h-4 w-4 shrink-0 text-[#72d2c7]" />Results are sorted by proximity when your location is available.</p>}
+        {permissionDenied ? <p className="flex gap-2 text-xs leading-5 text-[#ffd19a]"><AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />Location permission unavailable. Distances use regional center.</p> : <p className="flex gap-2 text-xs leading-5 text-white/55"><Compass className="mt-0.5 h-4 w-4 shrink-0 text-[#72d2c7]" />{detectedCity ? `Detected near ${detectedCity}.` : "Sorted by proximity."}</p>}
         <Link to="/map" className="mt-5 flex items-center justify-between border border-white/15 px-3 py-3 text-xs font-bold text-white transition hover:bg-white hover:text-[#102a31]"><span className="flex items-center gap-2"><Map className="h-4 w-4" />Open full map</span><ArrowUpRight className="h-4 w-4" /></Link>
       </div>
     </div>
@@ -58,10 +71,29 @@ export default function Explore() {
           <aside className="ink-rail hidden p-6 lg:block">{filters}</aside>
           <section className="min-w-0">
             <header className="flex flex-wrap items-center justify-between gap-4 border-b border-border bg-card px-5 py-5 sm:px-7">
-              <div><p className="atlas-label text-primary">Discovery register</p><h1 className="mt-1 font-display text-3xl tracking-[-0.045em]">Explore nearby places</h1></div>
-              <div className="flex items-center gap-3"><span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{filtered.length} {filtered.length === 1 ? "result" : "results"}</span><button onClick={() => setShowFilters(true)} className="grid h-10 w-10 place-items-center border border-border text-foreground lg:hidden" aria-label="Open filters"><SlidersHorizontal className="h-4 w-4" /></button></div>
+              <div>
+                <p className="atlas-label text-primary">Discovery register</p>
+                <h1 className="mt-1 font-display text-3xl tracking-[-0.045em]">
+                  {activeCity ? `These are the shops available in ${activeCity}` : "Explore nearby places"}
+                </h1>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{filtered.length} {filtered.length === 1 ? "result" : "results"}</span>
+                <button onClick={() => setShowFilters(true)} className="grid h-10 w-10 place-items-center border border-border text-foreground lg:hidden" aria-label="Open filters"><SlidersHorizontal className="h-4 w-4" /></button>
+              </div>
             </header>
             <div className="p-5 sm:p-7">
+              {activeCity && (
+                <div className="mb-6 flex items-center justify-between border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
+                  <span className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4" />
+                    <strong>These are the shops available in {activeCity}</strong>
+                  </span>
+                  {cityFilter !== "All" && (
+                    <button onClick={() => setCityFilter("All")} className="text-xs font-bold underline">Show all AP shops</button>
+                  )}
+                </div>
+              )}
               {error && <div className="mb-5 flex gap-2 border border-destructive/25 bg-destructive/5 p-4 text-sm text-destructive"><AlertTriangle className="h-4 w-4 shrink-0" />{error}</div>}
               {loading ? <div className="grid min-h-80 place-items-center"><div className="h-7 w-7 animate-spin rounded-full border-2 border-primary border-t-transparent" /></div> : filtered.length ? <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">{filtered.map((shop, index) => <ShopCard key={shop.id} shop={shop} index={index} distance={getDistance(position[0], position[1], shop.lat, shop.lng)} />)}</div> : <div className="grid min-h-80 place-items-center border border-dashed border-border bg-muted/25 text-center"><div><MapPin className="mx-auto h-7 w-7 text-primary" /><h2 className="mt-4 font-display text-3xl">No places match this bearing.</h2><p className="mt-2 text-sm text-muted-foreground">Try a broader search or return to the full register.</p><button onClick={reset} className="mt-5 border border-foreground px-4 py-2 text-xs font-extrabold text-foreground hover:bg-foreground hover:text-background">Reset filters</button></div></div>}
             </div>

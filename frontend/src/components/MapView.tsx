@@ -42,5 +42,5 @@ function CategoryMarker({ shop }: { shop: Shop }) {
 }
 
 export function MapView({ center, shops, className = "" }: { center: [number, number]; shops: Shop[]; className?: string }) {
-  return <div className={`overflow-hidden ${className}`}><MapContainer center={center} zoom={13} scrollWheelZoom style={{ height: "100%", width: "100%", minHeight: "420px" }}><TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /><RecenterMap center={center} /><Marker position={center} icon={userIcon}><Popup>Your current reference point</Popup></Marker>{shops.map((shop) => <CategoryMarker key={shop.id} shop={shop} />)}</MapContainer></div>;
+  return <div className={`relative z-0 isolate overflow-hidden ${className}`}><MapContainer center={center} zoom={13} scrollWheelZoom style={{ height: "100%", width: "100%", minHeight: "420px" }}><TileLayer attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" /><RecenterMap center={center} /><Marker position={center} icon={userIcon}><Popup>Your current reference point</Popup></Marker>{shops.map((shop) => <CategoryMarker key={shop.id} shop={shop} />)}</MapContainer></div>;
 }
